@@ -1,0 +1,12 @@
+  name: 'GitHub Event Object Parser'
+  description: 'Attempts to translate GHs event object into a human readable message'
+  inputs:
+    slack-channel:
+      description: 'Slack channel to use'
+      required: true
+  outputs:
+    message:
+      description: 'Human readable message'
+  runs:
+    using: 'node12'
+    main: 'index.js'
