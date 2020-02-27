@@ -4,6 +4,9 @@
     slack-channel:
       description: 'Slack channel to use'
       required: true
+    job-status:
+      description: 'Define the status of the job'
+      required: true
   outputs:
     message:
       description: 'Human readable message'
