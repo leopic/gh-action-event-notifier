@@ -70,7 +70,8 @@ const getPullRequestBlocks = (jobStatus, payload) => {
         getField('Changed files', pullRequest.changed_files),
         getField('Commits', pullRequest.commits)
       ]
-    }
+    },
+    divider
   ];
 };
 
