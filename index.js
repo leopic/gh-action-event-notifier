@@ -64,10 +64,10 @@ const getPullRequestBlocks = (jobStatus, runId, payload) => {
       "text": textBlock,
       "accessory": getButton('Execution Details', `${pullRequest.html_url}/runs/${runId}`),
       "fields": [
-        getField('Branch', ${pullRequest.head.ref}),
-        getField('Sha', ${pullRequest.head.sha}),
-        getField('Changed files', ${pullRequest.changed_files}),
-        getField('Commits', ${pullRequest.head.commits})
+        getField('Branch', pullRequest.head.ref),
+        getField('Sha', pullRequest.head.sha),
+        getField('Changed files', pullRequest.changed_files),
+        getField('Commits', pullRequest.head.commits)
       ]
     },
     divider
