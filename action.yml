@@ -4,9 +4,12 @@
     job-status:
       description: 'Define the status of the job'
       required: true
+    run-id:
+        description: 'Identifier for the current execution'
+        required: true
   outputs:
-    message:
-      description: 'Human readable message'
+    blocks:
+      description: 'Human readable message with PR result'
   runs:
     using: 'node12'
     main: 'index.js'

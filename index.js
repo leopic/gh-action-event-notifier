@@ -1,24 +1,87 @@
 const core = require('@actions/core');
 const github = require('@actions/github');
 
-try {
-  const jobStatus = core.getInput('job-status');
+const getFallbackBlocks = (jobStatus, payload) => {
+  const success = jobStatus === 'Success';
+  const eventName = github.context.eventName.replace('_', ' ');
+  const eventLink = `<${payload.repository.html_url}|${eventName}>`;
+  const author = `<${payload.sender.html_url}|${payload.sender.login}>`;
+  const repoName = `*<${payload.repository.html_url}|${payload.repository.full_name}>*`;
+  const emoji = success ? ':thumbsup:' : ':thumbsdown:';
 
-  const payload = github.context.payload;
+  return [
+    {
+      "type": "section",
+      "text": `${repoName}: the result of a ${eventName} by ${author} was: ${emoji}\n Details: ${eventLink}`
+    }
+  ];
+};
+
+const getField = (head, body) => {
+  return {
+    "type": "mrkdwn",
+    "text": `*${head}*: ${body}`
+  }
+};
+
+const getButton = (title, url) => {
+  return {
+    "type": "button",
+    "text": {
+      "type": "plain_text",
+      "text": title
+    },
+    "url": url
+  };
+};
+
+const getPullRequestBlocks = (jobStatus, runId, payload) => {
+  const success = jobStatus === 'Success';
+  const pullRequest = payload.pull_request;
 
   const repoName = `*<${payload.repository.html_url}|${payload.repository.full_name}>*`;
-  const eventName = github.context.eventName.replace('_', ' ');
+  const firstLine = `${repoName}`;
+
+  const emoji = success ? ':thumbsup:' : ':thumbsdown:';
+  const pullRequestLink = `<${pullRequest.html_url}|${pullRequest.title} #${pullRequest.number}>`;
+  const secondLine = `${pullRequestLink} ${emoji}`;
+
   const author = `<${payload.sender.html_url}|${payload.sender.login}>`;
-  const prDetails = `<${payload.pull_request.html_url}|details>`;
+  const thirdLine = `${author} submitted a pull request`;
 
-  const emoji = jobStatus === 'Success' ? ':thumbsup:' : ':thumbsdown:';
+  const textBlock = {
+    "type": "mrkdwn",
+    "text": [firstLine, secondLine, thirdLine].join('\n')
+  };
 
-  const message = `
-${repoName}: the result of a ${eventName} by ${author} was: ${emoji}
-See more ${prDetails}
-  `;
+  const divider = {
+    "type": "divider"
+  };
 
-  core.setOutput('message', message);
+  return [
+    {
+      "type": "section",
+      "text": textBlock,
+      "accessory": getButton('Execution Details', `${pullRequest.html_url}/runs/${runId}`),
+      "fields": [
+        getField('Branch', ${pullRequest.head.ref}),
+        getField('Sha', ${pullRequest.head.sha}),
+        getField('Changed files', ${pullRequest.changed_files}),
+        getField('Commits', ${pullRequest.head.commits})
+      ]
+    },
+    divider
+  ];
+};
+
+try {
+  const jobStatus = core.getInput('job-status');
+  const runId = core.getInput('run-id');
+  const payload = github.context.payload;
+  const isPR = github.context.eventName === 'pull_request';
+  const blocks = isPR ? getPullRequestBlocks(jobStatus, runId, payload) : getFallbackBlocks(jobStatus, payload);
+
+  core.setOutput('blocks', JSON.stringify(blocks));
 } catch (error) {
   core.setFailed(error.message);
 }
