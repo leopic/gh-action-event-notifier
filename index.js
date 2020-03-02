@@ -35,7 +35,7 @@ const getButton = (title, url) => {
   };
 };
 
-const getPullRequestBlocks = (jobStatus, runId, payload) => {
+const getPullRequestBlocks = (jobStatus, payload) => {
   const success = jobStatus === 'Success';
   const pullRequest = payload.pull_request;
 
@@ -43,7 +43,8 @@ const getPullRequestBlocks = (jobStatus, runId, payload) => {
   const firstLine = `${repoName}`;
 
   const emoji = success ? ':thumbsup:' : ':thumbsdown:';
-  const pullRequestLink = `<${pullRequest.html_url}|${pullRequest.title} #${pullRequest.number}>`;
+  const prURL = pullRequest.html_url;
+  const pullRequestLink = `<${prURL}|${pullRequest.title} #${pullRequest.number}>`;
   const secondLine = `${pullRequestLink} ${emoji}`;
 
   const author = `<${payload.sender.html_url}|${payload.sender.login}>`;
@@ -62,10 +63,10 @@ const getPullRequestBlocks = (jobStatus, runId, payload) => {
     {
       "type": "section",
       "text": textBlock,
-      "accessory": getButton('Execution Details', `${payload.repository.html_url}/runs/${runId}`),
+      "accessory": getButton('Execution Details', `${prURL}/checks`),
       "fields": [
         getField('Branch', pullRequest.head.ref),
-        getField('Sha', pullRequest.head.sha.substring(0, 6)),
+        getField('Sha', pullRequest.head.sha.substring(0, 7)),
         getField('Changed files', pullRequest.changed_files),
         getField('Commits', pullRequest.commits)
       ]
@@ -75,10 +76,9 @@ const getPullRequestBlocks = (jobStatus, runId, payload) => {
 
 try {
   const jobStatus = core.getInput('job-status');
-  const runId = core.getInput('run-id');
   const payload = github.context.payload;
   const isPR = github.context.eventName === 'pull_request';
-  const blocks = isPR ? getPullRequestBlocks(jobStatus, runId, payload) : getFallbackBlocks(jobStatus, payload);
+  const blocks = isPR ? getPullRequestBlocks(jobStatus, payload) : getFallbackBlocks(jobStatus, payload);
 
   core.setOutput('blocks', JSON.stringify(blocks).replace(/"/g, '\\"'));
 } catch (error) {
