@@ -67,7 +67,7 @@ const getPullRequestBlocks = (jobStatus, runId, payload) => {
         getField('Branch', pullRequest.head.ref),
         getField('Sha', pullRequest.head.sha),
         getField('Changed files', pullRequest.changed_files),
-        getField('Commits', pullRequest.head.commits)
+        getField('Commits', pullRequest.commits)
       ]
     },
     divider
@@ -81,7 +81,7 @@ try {
   const isPR = github.context.eventName === 'pull_request';
   const blocks = isPR ? getPullRequestBlocks(jobStatus, runId, payload) : getFallbackBlocks(jobStatus, payload);
 
-  core.setOutput('blocks', JSON.stringify(blocks));
+  core.setOutput('blocks', JSON.stringify(blocks).replace(/"/g, '\\"'));
 } catch (error) {
   core.setFailed(error.message);
 }
