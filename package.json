@@ -1,15 +1,18 @@
 {
-  "name": "gh-action-slack-message",
+  "name": "gh-action-message-translator",
   "version": "0.0.11",
   "description": "Translate GitHub actions output into human friendly messages for slack",
-  "main": "index.js",
+  "main": "lib/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jasmine"
   },
   "keywords": [],
   "license": "ISC",
   "dependencies": {
     "@actions/core": "^1.2.2",
     "@actions/github": "^2.1.1"
+  },
+  "devDependencies": {
+    "jasmine": "^3.5.0"
   }
 }
