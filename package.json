@@ -1,13 +1,12 @@
 {
   "name": "gh-action-slack-message",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.0.11",
+  "description": "Translate GitHub actions output into human friendly messages for slack",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "Leo Picado <leopic@gmail.com> (https://leopicado.com)",
   "license": "ISC",
   "dependencies": {
     "@actions/core": "^1.2.2",

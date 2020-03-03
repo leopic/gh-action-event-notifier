@@ -79,9 +79,10 @@ try {
   const jobStatus = core.getInput('job-status');
   const payload = github.context.payload;
   const isPR = github.context.eventName === 'pull_request';
-  const blocks = isPR ? getPullRequestBlocks(jobStatus, payload) : getFallbackBlocks(jobStatus, payload);
+  const rawBlock = isPR ? getPullRequestBlocks(jobStatus, payload) : getFallbackBlocks(jobStatus, payload);
+  const blocks = JSON.stringify(rawBlock).replace(/"/g, '\\"');
 
-  core.setOutput('blocks', JSON.stringify(blocks).replace(/"/g, '\\"'));
+  core.setOutput('blocks', blocks);
 } catch (error) {
   core.setFailed(error.message);
 }
