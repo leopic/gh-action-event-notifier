@@ -6,7 +6,7 @@
       required: true
   outputs:
     blocks:
-      description: 'Human readable message with PR result'
+      description: 'Human readable message with action result'
   runs:
     using: 'node12'
     main: 'lib/index.js'

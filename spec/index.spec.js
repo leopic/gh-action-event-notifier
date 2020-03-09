@@ -1,10 +1,11 @@
 'use strict';
 
 const github = require('@actions/github');
+const core = require('@actions/core');
 
 const translator = require('../lib/index');
 
-describe('Translator', function() {
+describe('Translator', function () {
   const pullRequestPayload = {
     "action": "opened",
     "number": 2,
@@ -47,18 +48,10 @@ describe('Translator', function() {
       "merged_at": null,
       "merge_commit_sha": null,
       "assignee": null,
-      "assignees": [
-
-      ],
-      "requested_reviewers": [
-
-      ],
-      "requested_teams": [
-
-      ],
-      "labels": [
-
-      ],
+      "assignees": [],
+      "requested_reviewers": [],
+      "requested_teams": [],
+      "labels": [],
       "milestone": null,
       "commits_url": "https://api.github.com/repos/Codertocat/Hello-World/pulls/2/commits",
       "review_comments_url": "https://api.github.com/repos/Codertocat/Hello-World/pulls/2/comments",
@@ -468,9 +461,7 @@ describe('Translator', function() {
     "forced": false,
     "base_ref": null,
     "compare": "https://github.com/Codertocat/Hello-World/compare/6113728f27ae...000000000000",
-    "commits": [
-
-    ],
+    "commits": [],
     "head_commit": null,
     "repository": {
       "id": 186853002,
@@ -595,16 +586,45 @@ describe('Translator', function() {
       "site_admin": false
     }
   };
+  const pushCommit = {
+    "sha": "6dcb09b5b57875f334f61aebed695e2e4193db5e",
+    "message": "Fix all the bugs",
+    "url": "https://api.github.com/repos/octocat/Hello-World/git/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+    "author": {
+      "name": "Monalisa Octocat",
+      "email": "support@github.com",
+    },
+    "distinct": true
+  };
 
-  describe('getField', () => {
-    it('should return a field object', () => {
-      const output = translator.getField('Sha', 'ffee00');
-      const expectation = {
-        "type": "mrkdwn",
-        "text": "*Sha*: ffee00"
-      };
+  describe('formatBlocks', () => {
+    it('should prepare a simple object to be consumed by Slack', () => {
+      const input = { url: "http://github.com" };
+
+      const expectation = '{\\\"url\\\":\\\"http://github.com\\\"}';
+      const output = translator.formatBlocks(input);
 
       expect(output).toEqual(expectation);
+    });
+  });
+
+  describe('getBlockBuilder', () => {
+    it('should route pull requests to the getPullRequestBlocks', () => {
+      spyOn(translator, 'getPullRequestBlocks');
+      translator.getBlockBuilder('pull_request');
+      expect(translator.getPullRequestBlocks).toHaveBeenCalled();
+    });
+
+    it('should route pushes to the getPushBlocks', () => {
+      spyOn(translator, 'getPushBlocks');
+      translator.getBlockBuilder('push');
+      expect(translator.getPushBlocks).toHaveBeenCalled();
+    });
+
+    it('should route all other events to getFallbackBlocks', () => {
+      spyOn(translator, 'getFallbackBlocks');
+      translator.getBlockBuilder('other');
+      expect(translator.getFallbackBlocks).toHaveBeenCalled();
     });
   });
 
@@ -624,9 +644,52 @@ describe('Translator', function() {
     });
   });
 
+  describe('getCommitListMessage', () => {
+    it('should return an empty string when no commits are found', () => {
+      const output = translator.getCommitListMessage({commits: []});
+
+      expect(output).toEqual('No new commits were found');
+    });
+
+    it('should return a list of commits when there are commits in the payload', () => {
+      const expectation = "The following commits were pushed:\n"
+        + "- 6dcb09b Fix all the bugs by Monalisa Octocat\n";
+
+      const output = translator.getCommitListMessage({commits: [pushCommit]});
+
+      expect(output).toEqual(expectation);
+    });
+  });
+
+  describe('getField', () => {
+    it('should return a field object', () => {
+      const output = translator.getField('Sha', 'ffee00');
+      const expectation = {
+        "type": "mrkdwn",
+        "text": "*Sha*: ffee00"
+      };
+
+      expect(output).toEqual(expectation);
+    });
+  });
+
+  describe('getTextBlock', () => {
+    it('should create an object containing the provided text', () => {
+      const input = 'hello world!';
+
+      const expectation = {
+        "type": "mrkdwn",
+        "text": input
+      };
+      const output = translator.getTextBlock(input);
+
+      expect(output).toEqual(expectation);
+    });
+  });
+
   describe('prepareOutput', () => {
     it('should properly stringify an object and escape quotes', () => {
-      const input = { text: "test", list: ["of", "strings"] };
+      const input = {text: "test", list: ["of", "strings"]};
       const output = translator.formatBlocks(input);
       const expectation = "{\\\"text\\\":\\\"test\\\",\\\"list\\\":[\\\"of\\\",\\\"strings\\\"]}";
 
@@ -640,11 +703,19 @@ describe('Translator', function() {
       github.context.eventName = 'push';
 
       const output = translator.getFallbackBlocks('Failure', pushPayload);
-      const expectation = [{
-        "type": "section",
-        "text": "*<https://github.com/Codertocat/Hello-World|Codertocat/Hello-World>*: the result of a push by" +
-          " <https://github.com/Codertocat|Codertocat> was: :thumbsdown:\n Details:" + " <https://github.com/Codertocat/Hello-World|push>"
-      }];
+      const expectation = [
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": "*<https://github.com/Codertocat/Hello-World|Codertocat/Hello-World>*: the result of a push by" +
+              " <https://github.com/Codertocat|Codertocat> was: :thumbsdown:\n Details: <https://github.com/Codertocat/Hello-World|push>"
+          }
+        },
+        {
+          "type": "divider"
+        }
+      ];
 
       expect(output).toEqual(expectation);
 
@@ -702,6 +773,93 @@ describe('Translator', function() {
       expect(output).toEqual(expectation);
 
       github.context.eventName = oldEventName;
+    });
+  });
+
+  describe('getPushBlocks', () => {
+    it('should provide a friendly formatted message for a push event to any branch', () => {
+      const oldEventName = github.context.eventName;
+      github.context.eventName = 'push';
+
+      const output = translator.getPushBlocks('Failure', pushPayload);
+      const expectation = [
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": "*<https://github.com/Codertocat/Hello-World|Codertocat/Hello-World>*: the result of a push to *simple-tag* was: :thumbsdown:. Head is at 6113728"
+          }
+        },
+        {
+          "type": "divider"
+        }
+      ];
+
+      expect(output).toEqual(expectation);
+
+      github.context.eventName = oldEventName;
+    });
+
+    it('should provide a friendly formatted message for a push event to a special branch', () => {
+      const oldEventName = github.context.eventName;
+      const oldTargetRef = pushPayload.ref;
+      github.context.eventName = 'push';
+      pushPayload.commits = [pushCommit];
+      pushPayload.ref = 'refs/heads/prod';
+
+      const output = translator.getPushBlocks('Success', pushPayload);
+      const firstLine   = "*<https://github.com/Codertocat/Hello-World|Codertocat/Hello-World>*: the result of a deploy to *prod* was: :thumbsup:. Head is at 6113728\n";
+      const secondLine  = "The following commits were pushed:\n";
+      const thirdLine   = "- 6dcb09b Fix all the bugs by Monalisa Octocat\n";
+
+      const expectation = [
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": [firstLine, secondLine, thirdLine].join('').trim()
+          }
+        },
+        {
+          "type": "divider"
+        }
+      ];
+
+      expect(output).toEqual(expectation);
+
+      github.context.eventName = oldEventName;
+      pushPayload.ref = oldTargetRef;
+      pushPayload.commits = [];
+    });
+  });
+
+  describe('run', () => {
+    it('should fail without a proper context', () => {
+      spyOn(core, 'setFailed');
+      spyOn(core, 'setOutput');
+      spyOn(console, 'error');
+
+      translator.run();
+
+      expect(core.setFailed).toHaveBeenCalled();
+      expect(core.setOutput).not.toHaveBeenCalled();
+      expect(console.error).toHaveBeenCalled();
+    });
+
+    it('should call the appropriate methods in order to create a message', () => {
+      spyOn(core, 'getInput');
+      spyOn(translator, 'getBlockBuilder').and.callThrough();
+      spyOn(translator, 'formatBlocks');
+      spyOn(core, 'setOutput');
+      spyOn(core, 'setFailed');
+
+      translator.run();
+
+      expect(core.getInput).toHaveBeenCalled();
+      expect(translator.getBlockBuilder).toHaveBeenCalled();
+      expect(translator.formatBlocks).toHaveBeenCalled();
+      expect(core.setOutput).toHaveBeenCalled();
+      expect(core.setFailed).not.toHaveBeenCalled();
     });
   });
 });
