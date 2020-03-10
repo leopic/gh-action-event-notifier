@@ -587,7 +587,7 @@ describe('Translator', function () {
     }
   };
   const pushCommit = {
-    "sha": "6dcb09b5b57875f334f61aebed695e2e4193db5e",
+    "id": "6dcb09b5b57875f334f61aebed695e2e4193db5e",
     "message": "Fix all the bugs",
     "url": "https://api.github.com/repos/octocat/Hello-World/git/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e",
     "author": {
@@ -849,6 +849,7 @@ describe('Translator', function () {
     it('should call the appropriate methods in order to create a message', () => {
       spyOn(core, 'getInput');
       spyOn(translator, 'getBlockBuilder').and.callThrough();
+      spyOn(translator, 'getFallbackBlocks');
       spyOn(translator, 'formatBlocks');
       spyOn(core, 'setOutput');
       spyOn(core, 'setFailed');
