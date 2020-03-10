@@ -1,7 +1,7 @@
 'use strict';
 
-const github = require('@actions/github');
-const core = require('@actions/core');
+let github = require('@actions/github');
+let core = require('@actions/core');
 
 const translator = require('../lib/index');
 
@@ -890,19 +890,26 @@ describe('Translator', function () {
 
   describe('run', () => {
     it('should fail without a proper context', () => {
+      const oldContext = github.context.payload;
+      github.context.payload = {};
+
+      spyOn(core, 'getInput');
       spyOn(core, 'setFailed');
       spyOn(core, 'setOutput');
       spyOn(console, 'error');
 
       translator.run();
 
+      expect(core.getInput).toHaveBeenCalled();
       expect(core.setFailed).toHaveBeenCalled();
       expect(core.setOutput).not.toHaveBeenCalled();
       expect(console.error).toHaveBeenCalled();
+
+      github.context.payload = oldContext;
     });
 
     it('should call the appropriate methods in order to create a message', () => {
-      spyOn(core, 'getInput');
+      spyOn(core, 'getInput').and.returnValues('Success', '123');
       spyOn(translator, 'getBlockBuilder').and.callThrough();
       spyOn(translator, 'getFallbackBlocks');
       spyOn(translator, 'formatBlocks');
