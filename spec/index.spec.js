@@ -5,6 +5,7 @@ let core = require('@actions/core');
 
 const translator = require('../lib/index');
 const blockBuilder = require('../lib/block-builder');
+const postMessage = require('../lib/post-message');
 
 describe('Translator', () => {
   describe('run', () => {
@@ -25,20 +26,20 @@ describe('Translator', () => {
       github.context.payload = oldContext;
     });
 
-    it('should call the appropriate methods in order to create a message', () => {
+    it('should call the appropriate methods in order to create a message', async () => {
       spyOn(core, 'getInput').and.returnValues('Success', '123');
       spyOn(blockBuilder, 'getBlockBuilder').and.callThrough();
       spyOn(blockBuilder, 'getFallbackBlocks');
-      spyOn(blockBuilder, 'formatBlocks');
-      spyOn(core, 'setOutput');
+      spyOn(core, 'info');
       spyOn(core, 'setFailed');
+      spyOn(postMessage, 'postMessage').and.returnValue(true);
 
-      translator.run();
+      await translator.run();
 
       expect(core.getInput).toHaveBeenCalled();
       expect(blockBuilder.getBlockBuilder).toHaveBeenCalled();
-      expect(blockBuilder.formatBlocks).toHaveBeenCalled();
-      expect(core.setOutput).toHaveBeenCalled();
+      expect(postMessage.postMessage).toHaveBeenCalled();
+      expect(core.info).toHaveBeenCalledTimes(2);
       expect(core.setFailed).not.toHaveBeenCalled();
     });
   });
