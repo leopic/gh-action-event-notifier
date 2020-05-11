@@ -3,14 +3,10 @@
 let github = require('@actions/github');
 let core = require('@actions/core');
 
-const pullRequestPayload = require('./support/stubs/pull-request-payload.json');
-const pushPayload = require('./support/stubs/push-payload.json');
-const pushCommit = require('./support/stubs/push-commit.json');
-
 const translator = require('../lib/index');
 const blockBuilder = require('../lib/block-builder');
 
-describe('Translator', function () {
+describe('Translator', () => {
   describe('run', () => {
     it('should fail without a proper context', () => {
       const oldContext = github.context.payload;
