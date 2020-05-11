@@ -1,15 +1,24 @@
-  name: 'GitHub Event Object Parser'
-  description: 'Attempts to translate GHs event object into a human readable message'
-  inputs:
-    job-status:
-      description: 'The current status of the job.'
-      required: true
-    run-id:
-      description: 'A unique number for each run within a repository'
-      required: true
-  outputs:
-    blocks:
-      description: 'Human readable message with action result'
-  runs:
-    using: 'node12'
-    main: 'lib/index.js'
+name: 'GitHub Event Object Parser'
+description: "Translates GitHub's events into a human readable messages in Slack"
+inputs:
+  job-status:
+    description: 'The current status of the job.'
+    required: true
+  run-id:
+    description: 'A unique number for each run within a repository'
+    required: true
+  github-token:
+    required: true
+    description: "Needed to authenticate to GitHub's API"
+  slackbot-token:
+    required: true
+    description: 'Needed to authenticate to Slacks API'
+  slack-conversation-id:
+    required: true
+    description: 'Channel or group that the message will be delivered to'
+runs:
+  using: 'node12'
+  main: 'lib/index.js'
+branding:
+  icon: 'message-square'
+  color: 'red'
