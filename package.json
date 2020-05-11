@@ -1,10 +1,12 @@
 {
   "name": "gh-action-message-translator",
-  "version": "0.0.32",
+  "version": "0.0.33",
   "description": "Translate GitHub actions output into human friendly messages for slack",
   "main": "lib/index.js",
   "scripts": {
-    "test": "jasmine"
+    "lint": "eslint lib/**.js spec/**.js",
+    "test": "jasmine",
+    "test-dev": "nodemon --exec jasmine"
   },
   "keywords": [],
   "license": "ISC",
@@ -13,6 +15,9 @@
     "@actions/github": "^2.1.1"
   },
   "devDependencies": {
-    "jasmine": "^3.5.0"
+    "eslint": "^6.3.0",
+    "jasmine": "^3.5.0",
+    "jasmine-core": "^3.5.0",
+    "nodemon": "^2.0.3"
   }
 }

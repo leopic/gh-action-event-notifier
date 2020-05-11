@@ -1,7 +1,6 @@
 'use strict';
 
 let github = require('@actions/github');
-let core = require('@actions/core');
 
 const pullRequestPayload = require('./support/stubs/pull-request-payload.json');
 const pushPayload = require('./support/stubs/push-payload.json');
@@ -9,12 +8,12 @@ const pushCommit = require('./support/stubs/push-commit.json');
 
 const blockBuilder = require('../lib/block-builder');
 
-describe('Block Builder', function () {
+describe('Block Builder', () => {
   describe('formatBlocks', () => {
     it('should prepare a simple object to be consumed by Slack', () => {
       const input = {url: "http://github.com"};
 
-      const expectation = '{\\\"url\\\":\\\"http://github.com\\\"}';
+      const expectation = '{\\"url\\":\\"http://github.com\\"}';
       const output = blockBuilder.formatBlocks(input);
 
       expect(output).toEqual(expectation);
