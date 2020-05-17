@@ -1,11 +1,35 @@
 ![CI](https://github.com/leopic/gh-action-event-slack-parser/workflows/CI/badge.svg)
 
-# GitHub Action Event Slack Block Parser
-A GitHub action to parse interesting events into a slack friendly format.
+# GitHub Action Event Slack Notifier
+Translates GitHub's events into human readable messages in Slack.
 
-## Usage
+## Setup
+To use this GitHub Action you'll first need to create a Slack App and install it to your workspace.
+
+### Creating a Slack App
+1. **Create a Slack App**. Go to [Slack's developer site](https://api.slack.com/apps) then click "Create an app".
+Name the app "GitHub Action" (you can change this later) and make sure your team's Slack workspace is selected under
+"Development Slack Workspace".
+2. **Add a Bot user**. Browse to the "Bot users" page listed in the sidebar. Name your bot "GitHub Action" (you can
+change this later) and leave the other default settings as-is.
+3. **Set an icon for your bot.** Browse to the "Basic information" page listed in the sidebar. Scroll down to the
+section titled "Display information" to set an icon.
+4. **Install your app to your workspace.** At the top of the "Basic information" page you can find a section titled
+"Install your app to your workspace". Click on it, then use the button to complete the installation.
+
+## Usage example
+
+To use this GitHub Action, you'll need to set the following inputs:
+- `slackbot-token` to get your Slack bot token, browse to the "OAuth & Permissions" page listed in Slack and copy the
+ "Bot User OAuth Access Token" beginning in `xoxb-`.
+- `slack-conversation-id` read below
+- `github-token` needed to authenticate to GitHub's API
+- `run-id` a unique number for each workflow run within a repository, you'll get this
+- `job-status` the current status of the job.
+
+Here is how this looks inside a workflow:
 ```yaml
-name: Event Parser
+name: GitHub Event Notifier
 
 on:
   pull_request:
@@ -16,116 +40,45 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetching Slack Message
+      - name: Notify Slack
         if: always()
-        uses: leopic/gh-action-translator@v1.0.0
-        id: parser
+        uses: leopic/gh-action-event-notifier@v1.0.0
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           job-status: ${{ job.status }}
+          run-id: ${{ github.run_id }}
+          slack-conversation-id: ${{ secrets.SLACK_CHANNEL_ID }}
+          slackbot-token: ${{ secrets.SLACK_BOT_TOKEN }}
 
 ```
 
-## Output example
+### Slack Conversation ID
 
-### Pull Request
-```json
-[{
-		"type": "section",
-		"text": {
-			"type": "mrkdwn",
-			"text": "*<https://github.com/Codertocat/Hello-World|Codertocat/Hello-World>*\n<https://github.com/Codertocat/Hello-World/pull/2|Update the README with new information. #2> :thumbsup:\n<https://github.com/Codertocat|Codertocat> submitted a pull request"
-		},
-		"accessory": {
-			"type": "button",
-			"text": {
-				"type": "plain_text",
-				"text": "Execution Details"
-			},
-			"url": "https://github.com/Codertocat/Hello-World/actions/runs/123"
-		},
-		"fields": [{
-				"type": "mrkdwn",
-				"text": "*Branch*: changes"
-			},
-			{
-				"type": "mrkdwn",
-				"text": "*Sha*: ec26c3e"
-			},
-			{
-				"type": "mrkdwn",
-				"text": "*Changed files*: 1"
-			},
-			{
-				"type": "mrkdwn",
-				"text": "*Commits*: 1"
-			}
-		]
-	},
-	{
-		"type": "divider"
-	}
-]
+A Slack Conversation ID (channel ID) can be:
+- The ID of a channel
+- The ID of a private group, or user you would like to post a
+- The ID of a user that will receive your messages
+ 
+Your bot can message any user in your Slack workspace but needs to be invited into channels and private groups before
+it can post to them.
+
+If you open Slack in your web browser, you can find channel IDs at the end of the URL when viewing channels and private
+groups. _Note that this doesn't work for direct messages._
+
+```
+https://myworkspace.slack.com/messages/CHANNEL_ID/
 ```
 
-### Push
-```json
-[{
-		"type": "section",
-		"text": {
-			"type": "mrkdwn",
-			"text": "A *deploy* was made to *prod* :thumbsup:\nThe following commits were pushed:\n- <https://api.github.com/repos/octocat/Hello-World/git/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e|6dcb09b>: Fix all the bugs, Monalisa Octocat"
-		},
-		"accessory": {
-			"type": "button",
-			"text": {
-				"type": "plain_text",
-				"text": "Execution Details"
-			},
-			"url": "https://github.com/Codertocat/Hello-World/actions/runs/111"
-		}
-	},
-	{
-		"type": "divider"
-	}
-]
-```
+You can also find channel IDs using the Slack API. Get a list of channels that your bot is a member of via Slack's
+[users.conversations](https://api.slack.com/methods/users.conversations) endpoint. Get user IDs for direct messages
+using Slack's [users.lookupByEmail](https://api.slack.com/methods/users.lookupByEmail) endpoint.
 
-*Note:* the actual output has all quotes escaped (\").
-
-## Usage example using `Post Slack messages`
-You would then take the output from this action into another action, such as
-[pullreminders/slack-action](https://github.com/marketplace/actions/post-slack-message) and
-feed it into a Slack channel of your choosing. 
-
-```yaml
-name: Event Parser
-
-on:
-  pull_request:
-    branches:
-      - master
-
-jobs:
-  run:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Fetching Slack Message
-        if: always()
-        uses: leopic/gh-action-translator@v1.0.0
-        id: parser
-        with:
-          job-status: ${{ job.status }}
-      - name: Notify slack
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }} # Make sure this is defined
-        uses: pullreminders/slack-action@master
-        with:
-          args: '{
-            \"channel\": \"YOUR_CHANNEL_ID\",
-            \"blocks\": ${{ steps.parser.outputs.blocks }}
-          }'
-```
+If the channel is private, you'll need to install the App in that channel.
 
 ### Output examples
 ![Push to special branch](https://cldup.com/WVCqixwNqa.png)
 ![Pull request](https://cldup.com/_rHgXb_aus.png)
+
+#### Special thanks
+- [Post Slack messages](https://github.com/marketplace/actions/post-slack-message) for the
+ inspiration and borrowed instructions
