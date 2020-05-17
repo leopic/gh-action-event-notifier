@@ -1,5 +1,5 @@
-name: 'GitHub Event Object Parser'
-description: "Translates GitHub's events into a human readable messages in Slack"
+name: 'GitHub Action Event Slack Notifier'
+description: "Translates GitHub's events into human readable messages in Slack."
 inputs:
   job-status:
     description: 'The current status of the job.'

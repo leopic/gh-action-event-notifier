@@ -9,40 +9,29 @@ const pushCommit = require('./support/stubs/push-commit.json');
 const blockBuilder = require('../lib/block-builder');
 
 describe('Block Builder', () => {
-  describe('formatBlocks', () => {
-    it('should prepare a simple object to be consumed by Slack', () => {
-      const input = {url: "http://github.com"};
-
-      const expectation = '{\\"url\\":\\"http://github.com\\"}';
-      const output = blockBuilder.formatBlocks(input);
-
-      expect(output).toEqual(expectation);
-    });
-  });
-
   describe('getBlockBuilder', () => {
     it('should route pull requests to the getPullRequestBlocks', () => {
       spyOn(blockBuilder, 'getPullRequestBlocks');
-      blockBuilder.getBlockBuilder('pull_request');
+      blockBuilder.buildBlocksFor({eventName: 'pull_request'});
       expect(blockBuilder.getPullRequestBlocks).toHaveBeenCalled();
     });
 
     it('should route pushes to the getPushBlocks', () => {
       spyOn(blockBuilder, 'getPushBlocks');
-      blockBuilder.getBlockBuilder('push');
+      blockBuilder.buildBlocksFor({eventName: 'push'});
       expect(blockBuilder.getPushBlocks).toHaveBeenCalled();
     });
 
     it('should route all other events to getFallbackBlocks', () => {
       spyOn(blockBuilder, 'getFallbackBlocks');
-      blockBuilder.getBlockBuilder('other');
+      blockBuilder.buildBlocksFor({eventName: 'other'});
       expect(blockBuilder.getFallbackBlocks).toHaveBeenCalled();
     });
   });
 
   describe('getButton', () => {
     it('should return a button object', () => {
-      const output = blockBuilder.getButton('Google', 'https://google.com');
+      const output = blockBuilder.getButton({title: 'Google', url: 'https://google.com'});
       const expectation = {
         "type": "button",
         "text": {
@@ -58,7 +47,7 @@ describe('Block Builder', () => {
 
   describe('getCommitListMessage', () => {
     it('should return an empty string when no commits are found', () => {
-      const output = blockBuilder.getCommitListMessage({commits: []});
+      const output = blockBuilder.getCommitListMessage({payload: {commits: []}});
 
       expect(output).toEqual('No new commits were found');
     });
@@ -67,7 +56,8 @@ describe('Block Builder', () => {
       const expectation = "The following commits were pushed:\n"
         + "- <https://api.github.com/repos/octocat/Hello-World/git/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e|6dcb09b>: Fix all the bugs, Monalisa Octocat\n";
 
-      const output = blockBuilder.getCommitListMessage({commits: [pushCommit]});
+      const commits = [pushCommit];
+      const output = blockBuilder.getCommitListMessage({commits});
 
       expect(output).toEqual(expectation);
     });
@@ -75,7 +65,7 @@ describe('Block Builder', () => {
 
   describe('getField', () => {
     it('should return a field object', () => {
-      const output = blockBuilder.getField('Sha', 'ffee00');
+      const output = blockBuilder.getField({head: 'Sha', body: 'ffee00'});
       const expectation = {
         "type": "mrkdwn",
         "text": "*Sha*: ffee00"
@@ -93,17 +83,7 @@ describe('Block Builder', () => {
         "type": "mrkdwn",
         "text": input
       };
-      const output = blockBuilder.getTextBlock(input);
-
-      expect(output).toEqual(expectation);
-    });
-  });
-
-  describe('prepareOutput', () => {
-    it('should properly stringify an object and escape quotes', () => {
-      const input = {text: "test", list: ["of", "strings"]};
-      const output = blockBuilder.formatBlocks(input);
-      const expectation = "{\\\"text\\\":\\\"test\\\",\\\"list\\\":[\\\"of\\\",\\\"strings\\\"]}";
+      const output = blockBuilder.getTextBlock({text: input});
 
       expect(output).toEqual(expectation);
     });
@@ -111,10 +91,11 @@ describe('Block Builder', () => {
 
   describe('getFallbackBlocks', () => {
     it('should provide a fallback message for non pull request events', () => {
-      const oldEventName = github.context.eventName;
-      github.context.eventName = 'push';
+      const jobStatus = 'Failure';
+      const payload = JSON.parse(JSON.stringify(pushPayload));
+      const eventName = 'push';
 
-      const output = blockBuilder.getFallbackBlocks('Failure', pushPayload, null, 'push');
+      const output = blockBuilder.getFallbackBlocks({eventName, jobStatus, payload});
       const expectation = [
         {
           "type": "section",
@@ -130,8 +111,6 @@ describe('Block Builder', () => {
       ];
 
       expect(output).toEqual(expectation);
-
-      github.context.eventName = oldEventName;
     });
   });
 
@@ -139,8 +118,11 @@ describe('Block Builder', () => {
     it('should build an object for a pull request event', () => {
       const oldEventName = github.context.eventName;
       github.context.eventName = 'pull_request';
+      const jobStatus = 'Success';
+      const payload = JSON.parse(JSON.stringify(pullRequestPayload));
+      const runId = 123;
 
-      const output = blockBuilder.getPullRequestBlocks('Success', pullRequestPayload, 123);
+      const output = blockBuilder.getPullRequestBlocks({jobStatus, payload, runId});
       const expectation = [
         {
           "type": "section",
@@ -192,8 +174,11 @@ describe('Block Builder', () => {
     it('should provide a friendly formatted message for a push event to any branch', () => {
       const oldEventName = github.context.eventName;
       github.context.eventName = 'push';
+      const jobStatus = 'Failure';
+      const runId = 123;
+      const payload = JSON.parse(JSON.stringify(pushPayload));
 
-      const output = blockBuilder.getPushBlocks('Failure', pushPayload, 123);
+      const output = blockBuilder.getPushBlocks({jobStatus, runId, payload});
       const expectation = [
         {
           "type": "section",
@@ -226,8 +211,11 @@ describe('Block Builder', () => {
       github.context.eventName = 'push';
       pushPayload.commits = [pushCommit];
       pushPayload.ref = 'refs/heads/prod';
+      const jobStatus = 'Failed';
+      const payload = JSON.parse(JSON.stringify(pushPayload));
+      const runId = 123;
 
-      const output = blockBuilder.getPushBlocks('Failed', pushPayload, 123);
+      const output = blockBuilder.getPushBlocks({jobStatus, payload, runId});
       const message = "*<https://github.com/Codertocat/Hello-World|Codertocat/Hello-World>*\nA *deploy* to *prod* failed :thumbsdown:";
 
       const expectation = [
@@ -260,12 +248,15 @@ describe('Block Builder', () => {
 
     it('should provide a friendly formatted message for a successful push event to a special branch', () => {
       const oldEventName = github.context.eventName;
-      const oldTargetRef = pushPayload.ref;
       github.context.eventName = 'push';
-      pushPayload.commits = [pushCommit];
-      pushPayload.ref = 'refs/heads/prod';
 
-      const output = blockBuilder.getPushBlocks('Success', pushPayload, 111);
+      let payload = JSON.parse(JSON.stringify(pushPayload));
+      payload.commits = [pushCommit];
+      payload.ref = 'refs/heads/prod';
+      const runId = 111;
+      const jobStatus = 'Success';
+
+      const output = blockBuilder.getPushBlocks({jobStatus, payload, runId});
       let message = "*<https://github.com/Codertocat/Hello-World|Codertocat/Hello-World>*\n";
       message += "A *deploy* was made to *prod* :thumbsup:\n";
       message += "The following commits were pushed:\n";
@@ -295,8 +286,6 @@ describe('Block Builder', () => {
       expect(output).toEqual(expectation);
 
       github.context.eventName = oldEventName;
-      pushPayload.ref = oldTargetRef;
-      pushPayload.commits = [];
     });
   });
 });
